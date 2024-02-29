@@ -24,7 +24,8 @@ sql.execute('CREATE TABLE IF NOT EXISTS products ('
 sql.execute('CREATE TABLE IF NOT EXISTS cart ('
           'id INTEGER, '
           'user_pr_name TEXT,'
-          'user_pr_count INTEGER'
+          'user_pr_count INTEGER,'
+          'total REAL'
           ');')
 
 ##method of user
@@ -57,8 +58,8 @@ def get_exact_pr(pr_id):
     return sql.execute('SELECT pr_name, pr_description, pr_count, pr_price, pr_photo ' 
                        'FROM products WHERE pt_id = ?', (pr_id,)).fetchone()
 #method of addition in busket
-def add_pr_to_cart(user_id, user_pr, user_pr_count):
-    sql.execute('INSERT INTO users VALUES(?,?,?);', (user_id, user_pr, user_pr_count))
+def add_pr_to_cart(user_id, user_pr, user_pr_count, total):
+    sql.execute('INSERT INTO users VALUES(?,?,?,?);', (user_id, user_pr, user_pr_count, total))
     connection.commit()
 
 #side of admin

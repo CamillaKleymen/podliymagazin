@@ -10,6 +10,9 @@ geolocator = Nominatim(
                'Safari/537.36')
 #id of admin
 admin_id = 631104511
+# temprory data
+users = {}
+
 
 # обработчик команды/start
 
@@ -17,9 +20,12 @@ admin_id = 631104511
 def start(message):
     user_id = message.from_user.id
     check = db.check_user(user_id)
+    prods = db.get_pr()
     if check:
         bot.send_message(user_id, 'Shalom, welcome to Podliy Magaziin!',
                          reply_markup=telebot.types.ReplyKeyboardRemove())
+        bot.send_message(user_id, "Choose a product:",
+                        reply_markup=bt.main_menu_buttons(prods))
     else:
         bot.send_message(user_id, 'Shalom!'
                                   'Lets to make registration!\n'
@@ -75,6 +81,92 @@ def get_location(message, user_name, user_number):
         bot.register_next_step_handler(message, get_location,
                                        user_name, user_number)
 
+#hcoice of amount
+@bot.callback_query_handler(lambda call: call.data in ['increment', 'decrement', 'to_cart', 'back'])
+def choose_pr_amount(call):
+    chat_id = call.message.chat.id
+    if call.data == 'increment':
+        new_amount = users[chat_id]['pr_count']
+        new_amount += 1
+        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message.id,
+                                      reply_markup=bt.count_buttons(new_amount, 'increment'))
+    elif call.data == 'decrement':
+        new_amount = users[chat_id]['pr_count']
+        new_amount -= 1
+        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message.id,
+                                      reply_markup=bt.count_buttons(new_amount, 'decrement'))
+
+    elif call.data == 'back':
+        prods = db.get_pr()
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.send_message(chat_id, "Returning you back to menu",
+                         reply_markup=bt.main_menu_buttons(prods))
+    elif call.data == 'to_cart':
+        product = db.get_exact_pr(users[chat_id]['pr_name'])
+        pr_amount = users[chat_id]['pr_count']
+        total = product[3]*pr_amount
+        db.add_pr(chat_id, product[0], pr_amount, total)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.send_message(chat_id, 'Product was successfully add to cart, what you are going to do?',
+                                  reply_markup=bt.cart_buttons())
+
+
+#cart
+@bot.callback_query_handler(lambda call: call.data in ['cart', 'order', 'back', 'clear'])
+def cart_handle(call):
+    chat_id = call.message.chat.id
+    if call.data == 'cart':
+        cart = db.show_cart(chat_id)
+        text = (f'Your cart\n\n' 
+                f'Product:{cart[1]}\n' 
+                f'Amount:{cart[2]}\n' 
+                f'Total: ${cart[3]}')
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.send_message(chat_id, text, reply_markup=bt.cart_buttons())
+    elif call.data == 'clear':
+        db.clear_cart(chat_id)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.send_message(chat_id, 'Your cart was cleared',
+                         reply_markup=bt.main_menu_buttons(prods))
+    elif call.data == 'order':
+        cart = db.make_order(chat_id)
+        text =  f'New order!\n\n'
+                f'id user:{cart[0][0]},\n'
+                f'product:{cart[0][1]}\n'
+                f'amount:{cart[0][2]}\n'
+                f'total sum: ${cart[0][3]}\n'
+                f'address:{cart[1][0]}'
+            bot.send_message(admin_id, text)
+            bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+            bot.send_message(chat_id, "Your order was successfully admited, empoyers connect to you soon!",
+                             reply_markup=bt.main_menu_buttons(prods))
+
+    elif call.data == 'back':
+        prods = db.get_pr()
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.send_message(chat_id, "Returning you back to menu",
+                         reply_markup=bt.main_menu_buttons(prods))
+
+#step of info count products
+@bot.callback_query_handler(lambda call: int(call.data) in db.get_pr())
+def get_product(call):
+    chat_id = call.message.chat.id
+    exact_product = db.get_exact_pr(int(call.data))
+    users[chat_id] = {'pr_name': call.data, 'pr_count':1}
+    bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+    bot.send_photo(chat_id, photo=exact_product[4],
+                   caption=f"Name of product:{exact_product[0]}, \n\n"
+                   f'Description of product: {exact_product[1]}\n)'
+                   f'Amount of product:{exact_product[2]}\n)'
+                   f'Price of product:{exact_product[3]}',
+                   reply_markup = bt.count_buttons())
+
+
+
+
+
+
+
 #button admin
 
 @bot.message_handler(commands=['admin'])
@@ -82,7 +174,7 @@ def admin(message):
     if message.from_user.id == admin_id:
         bot.send_message(admin_id, 'Welcome to admin dashboard',
                          reply_markup=bt.admin_buttons())
-        bot.register_next_step_handler((message, admin_choice))
+        bot.register_next_step_handler(message, admin_choice)
     else:
         bot.send_message(message.from_user.id, 'You are not admin!\n'
                                                     'Enter /start')
@@ -124,7 +216,7 @@ def get_pr_description(message, pr_name):
 #step of getting amount
 
 def get_pr_count(message, pr_name, pr_description):
-    if message.text != int(message.text):
+    if message.text.isnumeric() is not True:
         bot.send_message(admin_id, 'Enter only integer numbers!')
         #return to step of getting amount
         bot.register_next_step_handler(message, get_pr_count,
@@ -136,7 +228,7 @@ def get_pr_count(message, pr_name, pr_description):
                                        pr_name, pr_description, pr_count)
 
 def get_pr_price(message, pr_name, pr_description, pr_count):
-    if message.text != float(message.text):
+    if message.text.isdecimal() is not True:
         bot.send_message(admin_id, 'Enter only float numbers!')
         #return to step of getting amount
         bot.register_next_step_handler(message, get_pr_price,
@@ -159,7 +251,7 @@ def get_pr_photo(message, pr_name, pr_description, pr_count, pr_price):
     bot.register_next_step_handler(message, admin_choice)
 #edition of product
 def get_pr_to_edit(message):
-    if message.text != int(message.text):
+    if message.text.isnumeric() is not True:
         bot.send_message(admin_id, 'Enter only integer numbers!')
         #return to step of getting amount
         bot.register_next_step_handler(message, get_pr_to_edit)
@@ -171,7 +263,7 @@ def get_pr_to_edit(message):
 
 #step of getting stock
 def get_pr_stock(message, pr_id):
-    if message.text != int(message.text):
+    if message.text.isnumeric() is not True:
         bot.send_message(admin_id, 'Enter only integer numbers!')
         #return to step of getting amount
         bot.register_next_step_handler(message, get_pr_stock, pr_id)
@@ -184,7 +276,7 @@ def get_pr_stock(message, pr_id):
 
 
 def get_pr_to_del(message):
-    if message.text != int(message.text):
+    if message.text.isnumeric() is not True:
         bot.send_message(admin_id, 'Enter only integer numbers!')
         #return to step of getting amount
         bot.register_next_step_handler(message, get_pr_to_del)
@@ -194,6 +286,7 @@ def get_pr_to_del(message):
         bot.send_message(admin_id, 'Product was successfully deleted!',
                          reply_markup=bt.admin_buttons())
         bot.register_next_step_handler(message, admin_choice)
+
 
 # zapusk bot
 
