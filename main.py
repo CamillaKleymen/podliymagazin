@@ -25,7 +25,7 @@ def start(message):
         bot.send_message(user_id, 'Shalom, welcome to Podliy Magaziin!',
                          reply_markup=telebot.types.ReplyKeyboardRemove())
         bot.send_message(user_id, "Choose a product:",
-                        reply_markup=bt.main_menu_buttons(prods))
+                         reply_markup=bt.main_menu_buttons(prods))
     else:
         bot.send_message(user_id, 'Shalom!'
                                   'Lets to make registration!\n'
@@ -81,7 +81,7 @@ def get_location(message, user_name, user_number):
         bot.register_next_step_handler(message, get_location,
                                        user_name, user_number)
 
-#hcoice of amount
+#choice of amount
 @bot.callback_query_handler(lambda call: call.data in ['increment', 'decrement', 'to_cart', 'back'])
 def choose_pr_amount(call):
     chat_id = call.message.chat.id
@@ -115,31 +115,34 @@ def choose_pr_amount(call):
 @bot.callback_query_handler(lambda call: call.data in ['cart', 'order', 'back', 'clear'])
 def cart_handle(call):
     chat_id = call.message.chat.id
+
     if call.data == 'cart':
         cart = db.show_cart(chat_id)
-        text = (f'Your cart\n\n' 
-                f'Product:{cart[1]}\n' 
-                f'Amount:{cart[2]}\n' 
-                f'Total: ${cart[3]}')
+        text =  f'Your cart\n\n' \
+                f'Product:{cart[1]}\n' \
+                f'Amount:{cart[2]}\n' \
+                f'Total: ${cart[3]}'
         bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
         bot.send_message(chat_id, text, reply_markup=bt.cart_buttons())
     elif call.data == 'clear':
         db.clear_cart(chat_id)
+        prods = db.get_pr()
         bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
         bot.send_message(chat_id, 'Your cart was cleared',
                          reply_markup=bt.main_menu_buttons(prods))
     elif call.data == 'order':
+        prods = db.get_pr()
         cart = db.make_order(chat_id)
-        text =  f'New order!\n\n'
-                f'id user:{cart[0][0]},\n'
-                f'product:{cart[0][1]}\n'
-                f'amount:{cart[0][2]}\n'
-                f'total sum: ${cart[0][3]}\n'
-                f'address:{cart[1][0]}'
-            bot.send_message(admin_id, text)
-            bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
-            bot.send_message(chat_id, "Your order was successfully admited, empoyers connect to you soon!",
-                             reply_markup=bt.main_menu_buttons(prods))
+        text = f'New order!\n\n'\
+            f'id user:{cart[0][0]},\n'\
+            f'product:{cart[0][1]}\n'\
+            f'amount:{cart[0][2]}\n'\
+            f'total sum: ${cart[0][3]}\n'\
+            f'address:{cart[1][0]}'
+        bot.send_message(admin_id, text)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.send_message(chat_id, "Your order was successfully admited, empoyers connect to you soon!",
+                                 reply_markup=bt.main_menu_buttons(prods))
 
     elif call.data == 'back':
         prods = db.get_pr()
@@ -152,7 +155,7 @@ def cart_handle(call):
 def get_product(call):
     chat_id = call.message.chat.id
     exact_product = db.get_exact_pr(int(call.data))
-    users[chat_id] = {'pr_name': call.data, 'pr_count':1}
+    users[chat_id] = {'pr_name': call.data, 'pr_count': 1}
     bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
     bot.send_photo(chat_id, photo=exact_product[4],
                    caption=f"Name of product:{exact_product[0]}, \n\n"
@@ -160,11 +163,6 @@ def get_product(call):
                    f'Amount of product:{exact_product[2]}\n)'
                    f'Price of product:{exact_product[3]}',
                    reply_markup = bt.count_buttons())
-
-
-
-
-
 
 
 #button admin
@@ -208,7 +206,7 @@ def get_pr_name(message):
     bot.register_next_step_handler(message, get_pr_description, pr_name)
 
 def get_pr_description(message, pr_name):
-    pr_description = message.text
+    get_pr_description = message.text
     bot.send_message(admin_id, 'Now enter an amount of product!')
     bot.register_next_step_handler(message, get_pr_count,
                                    pr_name, get_pr_description)

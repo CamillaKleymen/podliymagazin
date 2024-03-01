@@ -78,6 +78,6 @@ def cart_buttons():
     order = types.InlineKeyboardButton(text='Make an order', callback_data='order')
     back = types.InlineKeyboardButton(text='Back', callback_data='back')
     clear = types.InlineKeyboardButton(text="Clear cart", callback_data='clear')
-    kb.add(order, back)
+    kb.add(order, back, clear)
     kb.row(order)
     return kb

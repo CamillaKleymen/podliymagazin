@@ -16,17 +16,19 @@ sql.execute('CREATE TABLE IF NOT EXISTS users ('
 sql.execute('CREATE TABLE IF NOT EXISTS products ('
             'pr_id INTEGER PRIMARY KEY AUTOINCREMENT, '
             'pr_name TEXT, '
+            'pr_count INTEGER,'
             'pr_description TEXT, '
             'pr_price REAL, '
             'pr_photo TEXT'
             ');')
 #creation busket
 sql.execute('CREATE TABLE IF NOT EXISTS cart ('
-          'id INTEGER, '
-          'user_pr_name TEXT,'
-          'user_pr_count INTEGER,'
-          'total REAL'
-          ');')
+              'id INTEGER, '
+              # 'user_id INTEGER,'
+              'user_pr_name TEXT,'
+              'user_pr_count INTEGER,'
+              'total REAL'
+              ');')
 
 ##method of user
 ##check of user
