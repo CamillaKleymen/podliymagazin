@@ -1,0 +1,23 @@
+version: "3"
+services:
+  api:
+    build: .
+    command:
+      - python
+      - main.py
+    ports:
+      - "1234:1234"
+    volumes:
+      - .:/shopbot
+    depends_on:
+      - database
+  database:
+    image: postgres:latest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - "POSTGRES_HOST-AUTH_METHOD=trust"
+
+volumes:
+  postrgres_data:
+
+

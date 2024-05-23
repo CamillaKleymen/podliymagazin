@@ -75,7 +75,7 @@ def get_location(message, user_name, user_number):
         bot.send_message(user_id, 'Registration was succesfully passed!')
     # if user sent location not from button
     else:
-        bot.send_message(user_id, 'Send message through button!',
+        bot.send_message(user_id, 'Send location through button!',
                          reply_markup=bt.loc_button())
         # return to step of getting location
         bot.register_next_step_handler(message, get_location,
@@ -88,17 +88,17 @@ def choose_pr_amount(call):
     if call.data == 'increment':
         new_amount = users[chat_id]['pr_count']
         new_amount += 1
-        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message.id,
+        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id,
                                       reply_markup=bt.count_buttons(new_amount, 'increment'))
     elif call.data == 'decrement':
         new_amount = users[chat_id]['pr_count']
         new_amount -= 1
-        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message.id,
+        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id,
                                       reply_markup=bt.count_buttons(new_amount, 'decrement'))
 
     elif call.data == 'back':
         prods = db.get_pr()
-        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, "Returning you back to menu",
                          reply_markup=bt.main_menu_buttons(prods))
     elif call.data == 'to_cart':
@@ -106,7 +106,7 @@ def choose_pr_amount(call):
         pr_amount = users[chat_id]['pr_count']
         total = product[3]*pr_amount
         db.add_pr(chat_id, product[0], pr_amount, total)
-        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, 'Product was successfully add to cart, what you are going to do?',
                                   reply_markup=bt.cart_buttons())
 
@@ -122,12 +122,12 @@ def cart_handle(call):
                 f'Product:{cart[1]}\n' \
                 f'Amount:{cart[2]}\n' \
                 f'Total: ${cart[3]}'
-        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, text, reply_markup=bt.cart_buttons())
     elif call.data == 'clear':
         db.clear_cart(chat_id)
         prods = db.get_pr()
-        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, 'Your cart was cleared',
                          reply_markup=bt.main_menu_buttons(prods))
     elif call.data == 'order':
@@ -140,25 +140,25 @@ def cart_handle(call):
             f'total sum: ${cart[0][3]}\n'\
             f'address:{cart[1][0]}'
         bot.send_message(admin_id, text)
-        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, "Your order was successfully admited, empoyers connect to you soon!",
                                  reply_markup=bt.main_menu_buttons(prods))
 
     elif call.data == 'back':
         prods = db.get_pr()
-        bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, "Returning you back to menu",
                          reply_markup=bt.main_menu_buttons(prods))
 
 #step of info count products
 @bot.callback_query_handler(lambda call: int(call.data) in db.get_pr())
 def get_product(call):
-    chat_id = call.message.chat.id
+    chat_id = call.message.chat_id
     exact_product = db.get_exact_pr(int(call.data))
     users[chat_id] = {'pr_name': call.data, 'pr_count': 1}
-    bot.delete_message(chat_id=chat_id, message_id=call.message.message.id)
+    bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
     bot.send_photo(chat_id, photo=exact_product[4],
-                   caption=f"Name of product:{exact_product[0]}, \n\n"
+                   caption=f'Name of product:{exact_product[0]}, \n\n'
                    f'Description of product: {exact_product[1]}\n)'
                    f'Amount of product:{exact_product[2]}\n)'
                    f'Price of product:{exact_product[3]}',
